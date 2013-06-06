@@ -195,13 +195,17 @@ uint32_t uIPMain(void)
     {
         if(timer_expired(&can_sync_timer))
         {
+            nCount++;
             timer_reset(&can_sync_timer);
             #ifndef TEST_GATEWAY
-            send_sync(3);
-            LED_Toggle(2);
+            send_sync( nCount % 2 );
+            if( nCount % 2 == 1 ) 
+                LED_On(2);
+            else
+                LED_Off(2);
             #endif
         }
-    
+
         uip_len = tapdev_read(uip_buf);
         if(uip_len > 0) //read input
         {
