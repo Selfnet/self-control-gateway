@@ -48,14 +48,6 @@ void CAN_config(void)
     CAN_InitStructure.CAN_RFLM = DISABLE;
     CAN_InitStructure.CAN_TXFP = DISABLE;
     CAN_InitStructure.CAN_Mode = CAN_Mode_Normal;
-    //CAN_InitStructure.CAN_Mode = CAN_Mode_LoopBack;
-
-    /* CAN Baudrate = 1MBps*/
-    //  CAN_InitStructure.CAN_SJW = CAN_SJW_1tq;
-    //  CAN_InitStructure.CAN_BS1 = CAN_BS1_3tq;
-    //  CAN_InitStructure.CAN_BS2 = CAN_BS2_5tq;
-    //  CAN_InitStructure.CAN_Prescaler = 4;
-    //  CAN_Init(CAN1, &CAN_InitStructure);
 
     // Baudrate = 125kbps
     CAN_InitStructure.CAN_SJW=CAN_SJW_1tq;
@@ -90,33 +82,12 @@ void CAN_config(void)
 }
 
 
-/*
-Field name	                        Length (bits)	Purpose
-Start-of-frame	                    1	Denotes the start of frame transmission
-Identifier A	                    11	First part of the (unique) identifier for the data which also represents the message priority
-Substitute remote request (SRR)	    1	Must be recessive (1). Optional
-Identifier extension bit (IDE)	    1	Must be recessive (1). Optional
-Identifier B	                    18	Second part of the (unique) identifier for the data which also represents the message priority
-Remote transmission request (RTR)	1	Must be dominant (0)
-Reserved bits (r0, r1)	            2	Reserved bits (it must be set dominant (0), but accepted as either dominant or recessive)
-Data length code (DLC)*	            4	Number of bytes of data (0–8 bytes)
-Data field	                        0–64 (0-8 bytes)	Data to be transmitted (length dictated by DLC field)
-CRC	                                15	Cyclic redundancy check
-CRC delimiter	                    1	Must be recessive (1)
-ACK slot	                        1	Transmitter sends recessive (1) and any receiver can assert a dominant (0)
-ACK delimiter	                    1	Must be recessive (1)
-End-of-frame (EOF)	                7	Must be recessive (1)
-*/
-
-// *** erklärung zu can vars ***
+// *** structure of ExtID ***
 //Sender        = RxMessage.ExtId & 0b00000111111110000000000000000 (8Bit)
 //Empfaenger    = RxMessage.ExtId & 0b00000000000001111111100000000 (8Bit)
 //Type          = RxMessage.ExtId & 0b00000000000000000000011111111 (8Bit)
-//ID-Type       = RxMessage.IDE (CAN_Id_Standard or CAN_Id_Extended) DEFAULT=1 (immer extended)
+//ID-Type       = RxMessage.IDE (CAN_Id_Standard or CAN_Id_Extended) DEFAULT=1
 //RTR           = RxMessage.RTR: immer 1 (nie daten anfragen)
-
-// ethernet bytes:
-// SENDER0 | SENDER1 | EMPFAENGER0 | EMPFAENGER1 | TYPE | SEND-REQUEST | DATA0 - DATA7
 
 void send_pong(CanRxMsg RxMessage)
 {
@@ -124,14 +95,14 @@ void send_pong(CanRxMsg RxMessage)
     if( getTyp(RxMessage.ExtId) == CAN_PROTO_PING )
     {
         CanTxMsg TxMessage;
-        TxMessage.IDE = CAN_ID_EXT;                                 //immer extended can frames
-        TxMessage.ExtId = CAN_EXT_ID;                               //default ID setzen
+        TxMessage.IDE = CAN_ID_EXT;
+        TxMessage.ExtId = CAN_EXT_ID;
         TxMessage.ExtId |= setSender( NODE_CAN_ID );
         TxMessage.ExtId |= setType( CAN_PROTO_PONG );
         TxMessage.ExtId |= setRecipient( getSender(RxMessage.ExtId) );
-        TxMessage.RTR = CAN_RTR_Data;                               // daten senden
+        TxMessage.RTR = CAN_RTR_Data; //how many bytes have been recept, send them back
 
-        // alle empfangen daten zurueckschicken
+        // send back all received packages
         TxMessage.DLC = RxMessage.DLC;
         int i;
         for(i = 0 ; i < RxMessage.DLC ; i++)
@@ -144,11 +115,12 @@ void send_pong(CanRxMsg RxMessage)
 
 uint32_t last_ping_send = 0;
 
+// send broadcast ping message
 uint32_t send_ping(char data)
 {
     CanTxMsg TxMessage;
-    TxMessage.IDE = CAN_ID_EXT;                                 //immer extended can frames
-    TxMessage.ExtId = CAN_EXT_ID;                               //default ID setzen
+    TxMessage.IDE = CAN_ID_EXT;
+    TxMessage.ExtId = CAN_EXT_ID;
     TxMessage.ExtId |= setSender( NODE_CAN_ID );
     TxMessage.ExtId |= setType( CAN_PROTO_PING );
     TxMessage.ExtId |= setRecipient( NODE_CAN_BROADCAST );
@@ -159,12 +131,12 @@ uint32_t send_ping(char data)
     last_ping_send = SysTick->VAL;
 }
 
-
+// send sync package
 void send_sync(char data)
 {
     CanTxMsg TxMessage;
-    TxMessage.IDE = CAN_ID_EXT;                                 //immer extended can frames
-    TxMessage.ExtId = CAN_EXT_ID;                               //default ID setzen
+    TxMessage.IDE = CAN_ID_EXT;
+    TxMessage.ExtId = CAN_EXT_ID;
     TxMessage.ExtId |= setSender( NODE_CAN_ID );
     TxMessage.ExtId |= setType( CAN_PROTO_SYNC );
     TxMessage.ExtId |= setRecipient( NODE_CAN_BROADCAST );
@@ -174,7 +146,7 @@ void send_sync(char data)
     CAN_Transmit(CAN1, &TxMessage);
 }
 
-
+// deal with new can packages
 void prozess_can_it(void)
 {
     CanRxMsg RxMessage;
@@ -182,13 +154,13 @@ void prozess_can_it(void)
 
     if(RxMessage.IDE == CAN_Id_Standard)
     {
-        //iggen 
+        //not used at the moment
     }
     else
     {
         // wenn es nicht von mir kommt
         if( getRecipient(RxMessage.ExtId) == NODE_CAN_ID || getRecipient(RxMessage.ExtId) == NODE_CAN_BROADCAST )
-        //if( getSender(RxMessage.ExtId) != NODE_CAN_ID ) //wenn man auf alles hören will
+        //if( getSender(RxMessage.ExtId) != NODE_CAN_ID ) // recevie all packages
         {
             //PING
             if( getTyp(RxMessage.ExtId) == CAN_PROTO_PING )
@@ -203,13 +175,14 @@ void prozess_can_it(void)
                 else
                     LED_Toggle(2);
             }
-            else
+            else //relay can msg to ehternet connection
             {
                 if(uip_conn != 0) // wenn tcp vorhanden antwort raushauen
                 {
                     // TODO send msg when finished
                     uip_tcp_appstate_t  *s = (uip_tcp_appstate_t  *)&(uip_conn->appstate);
-                    if(s!=0 && uip_conn->ripaddr[0] != 0 && uip_conn->ripaddr[1] != 0) //TODO figure out why the uip_conn is not null eaven if there is no connection!!!
+                    //TODO figure out why the uip_conn is not null eaven if there is no connection!!!
+                    if(s!=0 && uip_conn->ripaddr[0] != 0 && uip_conn->ripaddr[1] != 0)
                     {
                         int i;
 

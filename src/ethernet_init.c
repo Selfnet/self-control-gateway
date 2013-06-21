@@ -4,15 +4,14 @@
 /**
  * Enable DMA interrupts.
  */
-
 void ethernet_enable_interrupt(void)
 {
     // Enable DMA interrupts
     //#if INT_ENABLE_NIS
-    ETH->DMAIER |= ETH_DMAIER_NISE;         // Normal interrupt summary (master flag ob ueberhaput interrupts ausgeloest werden sollen
+    ETH->DMAIER |= ETH_DMAIER_NISE; // Normal interrupt summary (master flag ob ueberhaput interrupts ausgeloest werden sollen
     //#endif
     #if INT_ENABLE_AIS
-    ETH->DMAIER |= ETH_DMAIER_AISE;         // Abnormal interrupt summary
+    ETH->DMAIER |= ETH_DMAIER_AISE; // Abnormal interrupt summary
     #endif
 
 
@@ -55,8 +54,7 @@ void ethernet_enable_interrupt(void)
     #if INT_ENABLE_TI
     ETH->DMAIER |= ETH_DMAIER_TIE;          // Transmit
     #endif
-    
-    
+
     //configure NVIC
     NVIC_InitTypeDef NVIC_InitStructure;
     //select NVIC channel to configure
@@ -72,16 +70,11 @@ void ethernet_enable_interrupt(void)
 }
 
 
-
 int ethernet_init(void)
 {
     GPIO_InitTypeDef GPIO_InitStructure;
     NVIC_InitTypeDef NVIC_InitStructure;
     ETH_InitTypeDef ETH_InitStructure;
-
-    //printf("connect LAN cable and press Enter\n\r");
-    //while('\r' != getchar());
-
 
     /* Enable ETHERNET clock  */
     RCC_AHBPeriphClockCmd(RCC_AHBPeriph_ETH_MAC | RCC_AHBPeriph_ETH_MAC_Tx | RCC_AHBPeriph_ETH_MAC_Rx, ENABLE);
@@ -131,7 +124,6 @@ int ethernet_init(void)
     /**************************************************************/
     /*               For Remapped Ethernet pins                   */
     /*************************************************************/
-
     /* ETHERNET pins remapp in STM3210C-EVAL board: RX_DV and RxD[3:0] */
     GPIO_PinRemapConfig(GPIO_Remap_ETH, DISABLE);
 
@@ -186,11 +178,8 @@ int ethernet_init(void)
 
     /* Fill ETH_InitStructure parametrs */
     /*------------------------   MAC   -----------------------------------*/
-    //ETH_InitStructure.ETH_AutoNegotiation = ETH_AutoNegotiation_Disable  ;
     ETH_InitStructure.ETH_AutoNegotiation = ETH_AutoNegotiation_Enable;
-    //ETH_InitStructure.ETH_Speed = ETH_Speed_100M;
     //ETH_InitStructure.ETH_LoopbackMode = ETH_LoopbackMode_Disable;
-    //ETH_InitStructure.ETH_Mode = ETH_Mode_FullDuplex;
     ETH_InitStructure.ETH_RetryTransmission = ETH_RetryTransmission_Disable;
     ETH_InitStructure.ETH_AutomaticPadCRCStrip = ETH_AutomaticPadCRCStrip_Disable;
     ETH_InitStructure.ETH_ReceiveAll = ETH_ReceiveAll_Enable;
@@ -201,8 +190,9 @@ int ethernet_init(void)
     ETH_InitStructure.ETH_Mode = ETH_Mode_FullDuplex;
     ETH_InitStructure.ETH_Speed = ETH_Speed_100M;
 
+    // Check for PhyAddr
     unsigned int PhyAddr;
-    for(PhyAddr = 1; 32 >= PhyAddr; PhyAddr++) //bin mir immernoch nicht sicher was das hier macht ^^
+    for(PhyAddr = 1; 32 >= PhyAddr; PhyAddr++)
     {
         if((0x0022 == ETH_ReadPHYRegister(PhyAddr,2))
             && (0x1619 == (ETH_ReadPHYRegister(PhyAddr,3)))) break;
@@ -223,10 +213,11 @@ int ethernet_init(void)
 
     ETH_MACITConfig(ETH_MAC_IT_PMT,ENABLE);
     
+    //not working atm
     //ethernet_enable_interrupt();
 }
 
-
+// disables interrupts used from ethernet
 void ethernet_deinit(void)
 {
     TIM_DeInit(TIM2);

@@ -6,13 +6,13 @@
  *
  *    $Revision: #1 $
  **************************************************************************/
+
 #include "ethernet.h"
 
 #include <stdio.h>
 
 #define BUF ((struct uip_eth_hdr *)&uip_buf[0])
 
-#include "led_pwm.h"
 #include "can.h"
 
 #define TRUE 1
@@ -140,7 +140,6 @@ EnetDmaDesc_t EnetDmaRx;
 #pragma data_alignment=128
 EnetDmaDesc_t EnetDmaTx;
 
-
 uint32_t uIPMain(void)
 {
     uint32_t i;
@@ -152,22 +151,19 @@ uint32_t uIPMain(void)
     // Sys timer init 1/100 sec tick
     clock_init(2);
 
-//    timer_set(&periodic_timer, CLOCK_SECOND / 2);
     timer_set(&periodic_timer, CLOCK_SECOND / 10);
     timer_set(&arp_timer, CLOCK_SECOND * 10);
-    timer_set(&can_sync_timer, CLOCK_SECOND / 8); //1x pro sec wird gesynced
-    
+    timer_set(&can_sync_timer, CLOCK_SECOND / 8); //ca. 1x pro sec wird gesynced
 
     // Initialize the ethernet device driver
     // Init MAC
     // Phy network negotiation
-    tapdev_init(); // ENET_TxDscrInit (ethernet.c) & ENET_RxDscrInit (ethernet.c) &  ETH_Start (stm32_eth.c)
+    tapdev_init(); //code in: ENET_TxDscrInit (ethernet.c) & ENET_RxDscrInit (ethernet.c) &  ETH_Start (stm32_eth.c)
 
-    // uIP web server
     // Initialize the uIP TCP/IP stack.
-    uip_init(); // (uip.c)
+    uip_init(); //code in uip.c
 
-    // Init WEB server
+    // Init Server
     #ifdef TEST_GATEWAY
         uip_ipaddr(ipaddr, 10,43,100,111);
     #else
@@ -179,12 +175,10 @@ uint32_t uIPMain(void)
     uip_ipaddr(ipaddr, 255,255,0,0);
     uip_setnetmask(ipaddr); //nm
 
-    // Initialize the TELNET server.
+    // Initialize the server listen on port 23
     uip_listen(HTONS(23));
-    //uip_listen(HTONS(80));
 
-    //VCP_DataTx("Listen...\n", 11);
-
+    //turn led off, we are now ready for inncoming conenctions
     LED_Off(1);
 
     CanRxMsg RxMessage;
@@ -199,19 +193,20 @@ uint32_t uIPMain(void)
             timer_reset(&can_sync_timer);
             #ifndef TEST_GATEWAY
             send_sync( nCount % 2 );
-            if( nCount % 2 == 1 ) 
+            if( nCount % 2 == 1 )
                 LED_On(2);
             else
                 LED_Off(2);
             #endif
         }
 
+        // ethernet stuff
         uip_len = tapdev_read(uip_buf);
         if(uip_len > 0) //read input
         {
             if(BUF->type == htons(UIP_ETHTYPE_IP)) //Layer3?
             {
-                uip_arp_ipin(); 
+                uip_arp_ipin();
                 uip_input();
                 /* If the above function invocation resulted in data that
                  should be sent out on the network, the global variable
