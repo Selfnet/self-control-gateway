@@ -1,3 +1,8 @@
+/**
+******************************************************************************
+* This file is based on the sample Ethernet Project of the MCD Application Team
+******************************************************************************
+*/
 
 #include "includes.h"
 
@@ -13,7 +18,6 @@ void ethernet_enable_interrupt(void)
     #if INT_ENABLE_AIS
     ETH->DMAIER |= ETH_DMAIER_AISE; // Abnormal interrupt summary
     #endif
-
 
     #if INT_ENABLE_ERI
     ETH->DMAIER |= ETH_DMAIER_ERIE;         // Early receive
@@ -78,7 +82,6 @@ int ethernet_init(void)
 
     /* Enable ETHERNET clock  */
     RCC_AHBPeriphClockCmd(RCC_AHBPeriph_ETH_MAC | RCC_AHBPeriph_ETH_MAC_Tx | RCC_AHBPeriph_ETH_MAC_Rx, ENABLE);
-
 
     /* Enable GPIOs clocks */
     RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA |    RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOC |

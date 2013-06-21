@@ -6,8 +6,6 @@
 
 #include <string.h>
 
-#include "usbd_cdc_vcp.h"
-
 #define STATE_WAITING 0
 #define STATE_OUTPUT  1
 
@@ -16,8 +14,7 @@
 
 void send_ascii(uint32_t len, char *txt)
 {
-//    send_tcp( 
-//    s->outpt += memcpy( s->outputbuf+s->outpt , txt , len );
+//TODO dummy function for sending text
 }
 
 
@@ -48,6 +45,7 @@ int send_tcp(uip_tcp_appstate_t *s, char *txt, uint16_t len)
 
     return -3;
 }
+
 
 int append_to_cur_tcp(uip_tcp_appstate_t *s, char c)
 {
@@ -84,19 +82,8 @@ void handle_input(uip_tcp_appstate_t *s)
     char * tmp = ((char *)uip_appdata);
     int    len = uip_len;
 
-    // *** erklärung zu can vars ***
-    //Sender        = RxMessage.ExtId & 0b00000111111110000000000000000 (8Bit)
-    //Empfaenger    = RxMessage.ExtId & 0b00000000000001111111100000000 (8Bit)
-    //Type          = RxMessage.ExtId & 0b00000000000000000000011111111 (8Bit)
-    //ID-Type       = RxMessage.IDE (CAN_Id_Standard or CAN_Id_Extended) DEFAULT=1 (immer extended)
-    //RTR           = RxMessage.RTR: immer 1 (nie daten anfragen)
-
     // ethernet bytes:
-    // SENDER0 | SENDER1 | EMPFAENGER0 | EMPFAENGER1 | TYPE | SEND-REQUEST | DATA0 - DATA7
-    // EMPFAENGER0 | EMPFAENGER1 | TYPE | SEND-REQUEST | DATA0 - DATA7
-
-    // 0x15 | extID0 | extID1 | extID2 | extID3 | len | DATA0 - DATA7
-    // 0x15 | extID0 | Proto  |  Empf  | Sender | len | DATA0 - DATA7
+    // SENDER0 | SENDER1 | EMPFAENGER0 | EMPFAENGER1 | TYPE | LEN | DATA0 - DATA7
 
     //ping vom server
     if(len == 2 && tmp[0] == 0x01 )
@@ -127,37 +114,8 @@ void handle_input(uip_tcp_appstate_t *s)
         }
         CAN_Transmit(CAN1, &TxMessage);
 
-        //send_tcp(s, "SND", 3);
-
-        // *** print TxMessage struct ***
-        //CanMsg per Ethernet verschicken
-        //if(s->outpt + 24 + TxMessage.DLC < 128)
-        {
-            //send_tcp(s, "T", 1);
-            //append_to_cur_tcp(s, getTyp(TxMessage.ExtId) );
-            //append_to_cur_tcp(s, getRecipient(TxMessage.ExtId) );
-            //append_to_cur_tcp(s, getSender(TxMessage.ExtId) );
-
-            //data
-            /*for(i=0 ; i < TxMessage.DLC ; i++)
-            {
-                append_to_cur_tcp(s, TxMessage.Data[i] );
-            }*/
-        }
-
         LED_Toggle(1);
     }
-/*
-    else if(tmp[0] == 202) //light
-    {
-        if(tmp[1] == 1) //light 1
-        {
-            if(tmp[2] == 2) // on 
-                GPIOB->BSRR = GPIO_Pin_7;
-            else if(tmp[2] == 1) // off
-                GPIOB->BRR = GPIO_Pin_7;
-        }
-    }*/
 }
 
 static void

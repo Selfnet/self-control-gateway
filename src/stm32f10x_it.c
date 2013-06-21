@@ -1,46 +1,18 @@
 /**
-  ******************************************************************************
-  * @file    Project/Template/stm32f10x_it.c
-  * @author  MCD Application Team
-  * @version V3.1.0
-  * @date    06/19/2009
-  * @brief   Main Interrupt Service Routines.
-  *          This file provides template for all exceptions handler and
-  *          peripherals interrupt service routine.
-  ******************************************************************************
-  * @copy
-  *
-  * THE PRESENT FIRMWARE WHICH IS FOR GUIDANCE ONLY AIMS AT PROVIDING CUSTOMERS
-  * WITH CODING INFORMATION REGARDING THEIR PRODUCTS IN ORDER FOR THEM TO SAVE
-  * TIME. AS A RESULT, STMICROELECTRONICS SHALL NOT BE HELD LIABLE FOR ANY
-  * DIRECT, INDIRECT OR CONSEQUENTIAL DAMAGES WITH RESPECT TO ANY CLAIMS ARISING
-  * FROM THE CONTENT OF SUCH FIRMWARE AND/OR THE USE MADE BY CUSTOMERS OF THE
-  * CODING INFORMATION CONTAINED HEREIN IN CONNECTION WITH THEIR PRODUCTS.
-  *
-  * <h2><center>&copy; COPYRIGHT 2009 STMicroelectronics</center></h2>
-  */
+******************************************************************************
+* This file is based on the sample Interrupt Project of the MCD Application Team
+******************************************************************************
+*/
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f10x_it.h"
-extern void USB_OTGFS1_GlobalHandler(void);
 
 #include "io-helper.h"
 #include "uip.h"
-#include "led_pwm.h"
 #include "tcp_app.h"
 #include "can.h"
 
-
 #include <string.h>
-
-/*
-//usb
-#include "usb_core.h"
-#include "usbd_core.h"
-#include "usbd_cdc_core.h"
-//send
-#include "usbd_cdc_vcp.h"*/
-
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -48,16 +20,6 @@ extern void USB_OTGFS1_GlobalHandler(void);
 /* Private variables ---------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
-
-//usb
-/*
-extern USB_OTG_CORE_HANDLE                  USB_OTG_dev;
-extern uint32_t USBD_OTG_ISR_Handler        (USB_OTG_CORE_HANDLE *pdev);
-#ifdef USB_OTG_HS_DEDICATED_EP1_ENABLED 
-extern uint32_t USBD_OTG_EP1IN_ISR_Handler  (USB_OTG_CORE_HANDLE *pdev);
-extern uint32_t USBD_OTG_EP1OUT_ISR_Handler (USB_OTG_CORE_HANDLE *pdev);
-#endif
-*/
 
 /******************************************************************************/
 /*            Cortex-M3 Processor Exceptions Handlers                         */
@@ -164,32 +126,6 @@ void SysTick_Handler(void)
 /******************************************************************************/
 /******************************************************************************/
 
-/**
-  * @brief  This function handles EXTI15_10_IRQ Handler.
-  * @param  None
-  * @retval None
-  */
-/*void OTG_FS_WKUP_IRQHandler(void) //fuer usb
-{
-    if(USB_OTG_dev.cfg.low_power)
-    {
-        *(uint32_t *)(0xE000ED10) &= 0xFFFFFFF9 ; 
-        SystemInit();
-        USB_OTG_UngateClock(&USB_OTG_dev);
-    }
-    EXTI_ClearITPendingBit(EXTI_Line18);
-}*/
-
-/**
-  * @brief  This function handles OTG_HS Handler.
-  * @param  None
-  * @retval None
-  */
-/*void OTG_FS_IRQHandler(void) //fuer usb
-{
-    USBD_OTG_ISR_Handler (&USB_OTG_dev);
-}*/
-
 
 /*******************************************************************************
 * Function Name  : TIM2_IRQHandler
@@ -213,49 +149,9 @@ extern  void Tim2Handler (void);
 
 * Return         : None
 *******************************************************************************/
-#include <stdlib.h>
-
 void TIM6_IRQHandler(void) 
 {
     TIM_ClearITPendingBit(TIM6, TIM_IT_Update );
-    if(led.mode == 2) //random target rgb
-    {
-        led.target_r = rand()%2*255;
-        led.target_g = rand()%2*255;
-        led.target_b = rand()%2*255;
-        led.time = led.std_time;
-        start_fade(&led);
-        led.mode = 3; //random - fading
-    }
-    else if(led.mode == 5) //random change
-    {
-        fade_rnd_RGB(&led);
-    }
-    else if(led.mode == 4) //stress
-    {
-        led.r = rand()%255;
-        led.g = rand()%255;
-        led.b = rand()%255;
-        set_RGB(&led);
-    }
-    else if(led.mode == 9) //debug
-        _update_PWM( &led );//set_RGB(&led);
-    else
-    {
-        if(led.time > 0)
-        {
-            fade_RGB(&led);
-            if(led.time == 0 && led.mode == 0)
-            {
-                // TODO send msg when finished
-                struct tcp_test_app_state  *s = (struct tcp_test_app_state  *)&(uip_conn->appstate);
-                //strcpy(s->outputbuf , "fading finished");
-                send_ascii("fading finished", strlen("fading finished") );
-            }
-        }
-        else if(led.mode == 3)
-            led.mode = 2;
-    }
 }
 
 
@@ -288,23 +184,9 @@ void EXTI15_10_IRQHandler(void) //Button1
     //Check if EXTI_Line0 is asserted
     //if(EXTI_GetITStatus(EXTI_Line15) != RESET)
     {
-        //LED_On(1);
-        //GPIOB->BSRR = GPIO_Pin_7;
-        led.mode = 9;
-        led.cur_b += 100;
-        led.cur_r = 0;
-        led.cur_g = 0;
-        if(led.cur_r >= 0 && led.cur_r <= 2047 && led.cur_g >= 0 && led.cur_g <= 2047 && led.cur_b >= 0 && led.cur_b <= 2047)
-            ;//_update_PWM( &led );
-        else
-        {
-            LED_Toggle(2);
-            led.cur_b = 2048;
-        }
-        _update_PWM( &led );
+        LED_On(1);
+        send_ping(0xaa);
     }
-    //we need to clear line pending bit manually
-    //EXTI_ClearITPendingBit(EXTI_Line15);
 }
 
 // TODO
@@ -494,14 +376,9 @@ void ETH_IRQHandler(void)
     }
 }
 
-
-
 // *** CAN Interrupt ***
 void CAN1_RX0_IRQHandler(void)
 {
     prozess_can_it();
-    //CAN_ClearFlag(CAN1, CAN_FLAG_FMP0);
-    //CAN_ITConfig(CAN1, CAN_IT_FMP0, DISABLE);
 }
 
-/******************* (C) COPYRIGHT 2009 STMicroelectronics *****END OF FILE****/
