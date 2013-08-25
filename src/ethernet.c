@@ -165,14 +165,14 @@ uint32_t uIPMain(void)
 
     // Init Server
     #ifdef TEST_GATEWAY
-        uip_ipaddr(ipaddr, 10,43,100,111);
+        uip_ipaddr(ipaddr, 10,0,241,2);
     #else
-        uip_ipaddr(ipaddr, 10,43,100,112);
+        uip_ipaddr(ipaddr, 10,0,241,1);
     #endif
     uip_sethostaddr(ipaddr); //ip
-    uip_ipaddr(ipaddr, 10,43,0,254);
+    uip_ipaddr(ipaddr, 10,0,240,0);
     uip_setdraddr(ipaddr);  //gw
-    uip_ipaddr(ipaddr, 255,255,0,0);
+    uip_ipaddr(ipaddr, 255,255,252,0);
     uip_setnetmask(ipaddr); //nm
 
     // Initialize the server listen on port 23
